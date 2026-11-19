@@ -1,0 +1,17 @@
+RE-AG? ARCADE INSTALL
+1. Upload arcade.html and sw.js to the ROOT of the Re-Ag GitHub repository (same folder as index.html).
+2. In index.html, add this inside the existing profile-menu div:
+   <a class="arcade-menu-link" href="./arcade.html">Play Re-Ag? Jumper ↗</a>
+3. Add this CSS rule inside the existing style block:
+   .arcade-menu-link{display:block;padding:10px;border-radius:8px;color:var(--ink);font-size:13px;text-decoration:none}
+   .arcade-menu-link:hover{background:var(--soft)}
+4. Add this immediately before </body> in index.html:
+   <script>
+   if ("serviceWorker" in navigator) {
+     window.addEventListener("load", () => {
+       navigator.serviceWorker.register("./sw.js").catch(console.warn);
+     });
+   }
+   </script>
+5. Wait for GitHub Pages to deploy. Open the site once while online and then visit Arcade once while online. After the service worker installs, the arcade page can be opened offline.
+NOTE: Offline navigation fallback to arcade applies to navigations handled by the service worker. First visit must be online. The game itself has no external dependencies.
