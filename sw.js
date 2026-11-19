@@ -1,19 +1,18 @@
-const CACHE_NAME = "reag-arcade-v1";
-const APP_SHELL = ["./", "./index.html", "./arcade.html"];
+const CACHE_NAME = "reag-shell-v2";
+const APP_SHELL = [
+  "./", "./index.html", "./profile.html", "./explore.html",
+  "./notifications.html", "./saved.html", "./settings.html",
+  "./styles.css", "./app.js", "./arcade.html"
+];
 
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
-    ).then(() => self.clients.claim())
+    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
 });
 
@@ -26,18 +25,11 @@ self.addEventListener("fetch", event => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).then(response => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-        }
+        if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
         return response;
       }).catch(async () => {
-        const isArcade = url.pathname.endsWith("/arcade.html");
-        if (isArcade) return (await caches.match("./arcade.html")) || Response.error();
-        return (await caches.match("./arcade.html")) ||
-          new Response("Offline: open Re-Ag? Arcade after the first online visit.", {
-            headers: {"Content-Type":"text/plain"}
-          });
+        const cached = await caches.match(request);
+        return cached || caches.match("./index.html") || Response.error();
       })
     );
     return;
@@ -45,10 +37,7 @@ self.addEventListener("fetch", event => {
 
   event.respondWith(
     caches.match(request).then(cached => cached || fetch(request).then(response => {
-      if (response.ok) {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-      }
+      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
       return response;
     }))
   );
