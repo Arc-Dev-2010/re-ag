@@ -90,6 +90,7 @@ main{width:min(100%,650px);margin:25px auto 70px}
 .dialog-switch{border:0;background:none;color:var(--accent-ink);padding:8px 0}
 body.dark{--page:#171815;--surface:#22241f;--ink:#eeeee8;--muted:#a5a79c;--line:#393c34;--soft:#30342b;--accent:#858d70;--accent-ink:#dce2ca;--shadow:0 10px 34px rgba(0,0,0,.16)}
 body.dark .post-button{color:#171815}
+
 @media(max-width:760px){
  .site{width:min(100% - 28px,650px)}
  .header{height:88px}
@@ -137,6 +138,23 @@ body.dark .post-button{color:#171815}
  .others-tab{top:0;right:auto;left:0;width:82px;height:35px;writing-mode:horizontal-tb;border-radius:13px 22px 0 0}
  .feed-box{border-radius:0 18px 18px 18px}
 }
+
+/* MEMBER PROFILE STYLES */
+.profile-link{border:0;background:transparent;color:var(--ink);font:inherit;font-weight:650;padding:0;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;cursor:pointer}
+.profile-link:hover{color:var(--accent-ink)}
+.profile-dialog{width:min(100%,480px);max-height:min(86vh,760px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow)}
+.profile-dialog input,.profile-dialog textarea{width:100%;padding:11px;margin:6px 0 12px;border:1px solid var(--line);border-radius:9px;background:var(--page);color:var(--ink)}
+.profile-dialog textarea{min-height:86px;resize:vertical}
+.profile-top{display:flex;align-items:center;gap:13px;margin:15px 0}
+.profile-avatar{width:58px;height:58px;border-radius:50%;background:var(--soft);display:grid;place-items:center;overflow:hidden;font-size:21px;font-weight:700;flex-shrink:0}
+.profile-avatar img{width:100%;height:100%;object-fit:cover}
+.profile-stats{display:flex;gap:18px;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.profile-stats strong{color:var(--ink)}
+.profile-recent{padding:11px 0;border-bottom:1px solid var(--line);font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.profile-muted{font-size:12px;color:var(--muted)}
+.profile-actions{display:flex;gap:9px;margin-top:15px;flex-wrap:wrap}
+.profile-actions button{border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);padding:9px 13px}
+.profile-actions .post-button{border:0;background:var(--accent);color:white}
 </style>
 </head>
 
@@ -238,7 +256,16 @@ body.dark .post-button{color:#171815}
  </section>
 </div>
 
-<!-- Load Supabase separately. The rest of the interface does not depend on this CDN loading. -->
+<div class="dialog-backdrop" id="memberDialog">
+ <section class="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="memberTitle">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+   <h2 id="memberTitle" style="font-size:20px;margin:0">Member profile</h2>
+   <button class="icon-button" id="memberClose" aria-label="Close">×</button>
+  </div>
+  <div id="memberContent"><p class="profile-muted">Loading profile…</p></div>
+ </section>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -290,7 +317,7 @@ function closePanels(except = "") {
  if (except !== "sort") $("sortMenu").classList.remove("open");
 }
 
-/* TAP-TO-OPEN BRAND PANEL */
+/* BRAND PANEL */
 $("brandToggle").addEventListener("click", event => {
  event.stopPropagation();
  const open = !$("brandPanel").classList.contains("open");
@@ -298,7 +325,6 @@ $("brandToggle").addEventListener("click", event => {
  $("brandPanel").classList.toggle("open", open);
  $("brandToggle").setAttribute("aria-expanded", String(open));
 });
-
 $("brandPanel").addEventListener("click", event => event.stopPropagation());
 
 /* ACCOUNT MENU */
@@ -317,7 +343,6 @@ $("themeToggle").addEventListener("click", () => {
   localStorage.setItem("reag-theme", document.body.classList.contains("dark") ? "dark" : "light");
  } catch {}
 });
-
 try {
  if (localStorage.getItem("reag-theme") === "dark") document.body.classList.add("dark");
 } catch {}
@@ -329,7 +354,6 @@ $("sortToggle").addEventListener("click", event => {
  closePanels("sort");
  $("sortMenu").classList.toggle("open", open);
 });
-
 $("sortMenu").addEventListener("click", event => {
  event.stopPropagation();
  const button = event.target.closest("[data-sort]");
@@ -340,7 +364,7 @@ $("sortMenu").addEventListener("click", event => {
  renderPosts();
 });
 
-/* CLOSE MENUS ON OUTSIDE TAP */
+/* CLOSE MENUS */
 document.addEventListener("click", event => {
  if (!event.target.closest(".brand-wrap")) closePanels();
  else if (!event.target.closest(".profile-wrap")) $("profileMenu").classList.remove("open");
@@ -438,7 +462,7 @@ async function loadProfiles(ids) {
  if (!missing.length) return;
 
  const { data, error } = await db.from("profiles")
-  .select("id,username,display_name").in("id", missing);
+  .select("id,username,display_name,bio,avatar_url").in("id", missing);
 
  if (error) {
   console.error("Profiles:", error);
@@ -447,7 +471,7 @@ async function loadProfiles(ids) {
  (data || []).forEach(profile => profileCache[profile.id] = profile);
 }
 
-/* DATABASE: COMMUNITY FEED */
+/* COMMUNITY FEED */
 async function loadFeed() {
  if (!requireDatabase()) {
   $("feed").innerHTML = '<div class="empty">Database unavailable. Check your connection and reload.</div>';
@@ -526,7 +550,7 @@ function renderPosts() {
   return `<article class="post" data-post-id="${escapeHTML(post.id)}">
    <div class="post-meta">
     <span class="avatar">${escapeHTML(name.charAt(0).toUpperCase())}</span>
-    <span class="post-user">${escapeHTML(name)}</span>
+    <button class="post-user profile-link" data-open-profile="${escapeHTML(post.user_id)}">${escapeHTML(name)}</button>
     <span>· ${when}</span>
    </div>
    <p class="post-content">${escapeHTML(post.content)}</p>
@@ -539,6 +563,136 @@ function renderPosts() {
    <div class="comments-area"></div>
   </article>`;
  }).join("");
+}
+
+/* MEMBER PROFILES */
+function closeMemberProfile() {
+ $("memberDialog").style.display = "none";
+}
+$("memberClose").addEventListener("click", closeMemberProfile);
+$("memberDialog").addEventListener("click", event => {
+ if (event.target === $("memberDialog")) closeMemberProfile();
+});
+
+async function openMemberProfile(userId, editing = false) {
+ if (!requireDatabase()) return;
+ $("memberDialog").style.display = "flex";
+ $("memberContent").innerHTML = '<p class="profile-muted">Loading profile…</p>';
+
+ const { data: profile, error } = await db.from("profiles")
+  .select("id,username,display_name,bio,avatar_url")
+  .eq("id", userId).maybeSingle();
+
+ if (error || !profile) {
+  $("memberContent").innerHTML = '<p class="profile-muted">Could not load this profile.</p>';
+  return;
+ }
+ profileCache[userId] = profile;
+
+ const { data: posts, error: postsError } = await db.from("posts")
+  .select("id,content,created_at").eq("user_id", userId)
+  .order("created_at", { ascending:false }).limit(100);
+
+ if (postsError) {
+  $("memberContent").innerHTML = '<p class="profile-muted">Could not load this member’s posts.</p>';
+  return;
+ }
+
+ const postIds = (posts || []).map(post => post.id);
+ let likes = 0, comments = 0;
+
+ if (postIds.length) {
+  const [likesResult, commentsResult] = await Promise.all([
+   db.from("likes").select("post_id").in("post_id", postIds),
+   db.from("comments").select("id").in("post_id", postIds)
+  ]);
+  if (!likesResult.error) likes = (likesResult.data || []).length;
+  if (!commentsResult.error) comments = (commentsResult.data || []).length;
+ }
+
+ const ownProfile = currentUser && currentUser.id === userId;
+ const name = profile.display_name || profile.username || "Member";
+ const avatar = profile.avatar_url
+  ? '<img src="'+escapeHTML(profile.avatar_url)+'" alt="">'
+  : escapeHTML(name.charAt(0).toUpperCase());
+
+ const recentHTML = (posts || []).slice(0,5).map(post =>
+  '<div class="profile-recent">'+escapeHTML(post.content)+'</div>'
+ ).join("") || '<p class="profile-muted">No posts yet.</p>';
+
+ if (editing && ownProfile) {
+  $("memberTitle").textContent = "Edit your profile";
+  $("memberContent").innerHTML = `
+   <form id="editMemberForm">
+    <label class="profile-muted" for="editDisplayName">Display name</label>
+    <input id="editDisplayName" maxlength="40" required value="${escapeHTML(profile.display_name || "")}">
+    <label class="profile-muted" for="editBio">Bio (max 160 characters)</label>
+    <textarea id="editBio" maxlength="160" placeholder="A little about you…">${escapeHTML(profile.bio || "")}</textarea>
+    <label class="profile-muted" for="editAvatar">Avatar image URL (optional)</label>
+    <input id="editAvatar" type="url" maxlength="500" placeholder="https://…" value="${escapeHTML(profile.avatar_url || "")}">
+    <p class="profile-muted">Use a direct image URL. Leave it empty to use your initial instead.</p>
+    <div class="profile-actions">
+     <button class="post-button" type="submit">Save profile</button>
+     <button type="button" id="cancelEditProfile">Cancel</button>
+    </div>
+   </form>`;
+
+  $("editMemberForm").addEventListener("submit", async event => {
+   event.preventDefault();
+
+   const display_name = $("editDisplayName").value.trim();
+   const bio = $("editBio").value.trim();
+   const avatar_url = $("editAvatar").value.trim();
+
+   if (!display_name) return notify("Display name cannot be empty.");
+   if (avatar_url && !/^https?:\/\//i.test(avatar_url)) {
+    return notify("Avatar URL must start with https:// or http://.");
+   }
+
+   const saveButton = event.target.querySelector('button[type="submit"]');
+   saveButton.disabled = true;
+
+   const { data: updated, error: updateError } = await db.from("profiles")
+    .update({display_name,bio,avatar_url}).eq("id", userId)
+    .select("id,username,display_name,bio,avatar_url").maybeSingle();
+
+   saveButton.disabled = false;
+
+   if (updateError) return notify(updateError.message);
+
+   profileCache[userId] = updated || { ...profile,display_name,bio,avatar_url };
+   notify("Profile updated!");
+   await loadFeed();
+   await openMemberProfile(userId, false);
+  });
+
+  $("cancelEditProfile").addEventListener("click", () => openMemberProfile(userId, false));
+  return;
+ }
+
+ $("memberTitle").textContent = name + "'s profile";
+ $("memberContent").innerHTML = `
+  <div class="profile-top">
+   <div class="profile-avatar">${avatar}</div>
+   <div>
+    <strong>${escapeHTML(name)}</strong>
+    <div class="profile-muted">@${escapeHTML(profile.username || "member")}</div>
+    <div class="profile-muted">${escapeHTML(profile.bio || "No bio yet.")}</div>
+   </div>
+  </div>
+  <div class="profile-stats">
+   <span><strong>${(posts || []).length}</strong> posts</span>
+   <span><strong>${likes}</strong> likes received</span>
+   <span><strong>${comments}</strong> comments on posts</span>
+  </div>
+  <h3 style="font-size:14px;margin:17px 0 4px">Recent posts</h3>
+  ${recentHTML}
+  ${ownProfile ? '<div class="profile-actions"><button class="post-button" id="editMyProfile">Edit profile</button></div>' : ''}
+ `;
+
+ if (ownProfile) {
+  $("editMyProfile").addEventListener("click", () => openMemberProfile(userId, true));
+ }
 }
 
 /* PUBLISH POSTS */
@@ -592,6 +746,7 @@ async function showComments(id, area) {
  }
 
  area.innerHTML = '<div class="comments-panel">Loading comments…</div>';
+
  const { data, error } = await db.from("comments")
   .select("id,user_id,content,created_at")
   .eq("post_id", id).order("created_at", { ascending:true });
@@ -602,6 +757,7 @@ async function showComments(id, area) {
  }
 
  await loadProfiles((data || []).map(row => row.user_id));
+
  area.innerHTML = `<div class="comments-panel">
   ${(data || []).map(row => {
    const profile = profileCache[row.user_id] || {};
@@ -612,11 +768,13 @@ async function showComments(id, area) {
    <button type="submit">Reply</button>
   </form>
  </div>`;
+
  area.dataset.loaded = "true";
 }
 
 async function submitComment(id, form) {
  if (!currentUser) return openAuth();
+
  const input = form.querySelector("input");
  const content = input.value.trim();
  if (!content) return;
@@ -636,26 +794,40 @@ async function submitComment(id, form) {
 /* REPORTS */
 async function reportPost(id) {
  if (!currentUser) return openAuth();
+
  const reason = prompt("Reason: spam, harassment, inappropriate, or other");
  if (!reason) return;
+
  const allowed = ["spam","harassment","inappropriate","other"];
  const normalized = reason.trim().toLowerCase();
- if (!allowed.includes(normalized)) return notify("Please enter one of the listed reasons.");
+
+ if (!allowed.includes(normalized)) {
+  return notify("Please enter one of the listed reasons.");
+ }
 
  const { error } = await db.from("reports").insert({
   reporter_id:currentUser.id,post_id:id,reason:normalized
  });
+
  notify(error ? error.message : "Report submitted. Thank you.");
 }
 
 /* FEED BUTTONS */
 $("feed").addEventListener("click", async event => {
+ const profileButton = event.target.closest("[data-open-profile]");
+ if (profileButton) {
+  await openMemberProfile(profileButton.dataset.openProfile);
+  return;
+ }
+
  const button = event.target.closest("[data-action]");
  if (!button) return;
+
  const post = button.closest("[data-post-id]");
  if (!post) return;
 
  const id = post.dataset.postId;
+
  if (button.dataset.action === "like") await toggleLike(id);
  if (button.dataset.action === "save") await toggleBookmark(id);
  if (button.dataset.action === "comments") await showComments(id, post.querySelector(".comments-area"));
@@ -665,6 +837,7 @@ $("feed").addEventListener("click", async event => {
 $("feed").addEventListener("submit", async event => {
  if (!event.target.matches(".comment-form")) return;
  event.preventDefault();
+
  const post = event.target.closest("[data-post-id]");
  if (post) await submitComment(post.dataset.postId, event.target);
 });
@@ -673,13 +846,16 @@ $("feed").addEventListener("submit", async event => {
 $("profileMenu").addEventListener("click", async event => {
  const button = event.target.closest("[data-menu]");
  if (!button) return;
+
  const action = button.dataset.menu;
  $("profileMenu").classList.remove("open");
 
  if (action === "auth") {
   if (!currentUser) return openAuth();
+
   const { error } = await db.auth.signOut();
   if (error) return notify(error.message);
+
   currentUser = null;
   updateAccountMenu();
   notify("Signed out.");
@@ -688,36 +864,30 @@ $("profileMenu").addEventListener("click", async event => {
 
  if (action === "profile") {
   if (!currentUser) return openAuth();
-  const { data, error } = await db.from("profiles")
-   .select("display_name").eq("id", currentUser.id).maybeSingle();
-  if (error) return notify(error.message);
-  const name = prompt("Display name:", data?.display_name || "");
-  if (name === null || !name.trim()) return;
-  const { error: updateError } = await db.from("profiles")
-   .update({ display_name:name.trim() }).eq("id", currentUser.id);
-  if (updateError) return notify(updateError.message);
-  profileCache[currentUser.id] = { ...(profileCache[currentUser.id] || {}), display_name:name.trim() };
-  notify("Profile updated.");
-  await loadFeed();
+  await openMemberProfile(currentUser.id, true);
  }
 
  if (action === "saved") {
   if (!currentUser) return openAuth();
+
   const { data, error } = await db.from("bookmarks")
    .select("post_id").eq("user_id", currentUser.id);
+
   if (error) return notify(error.message);
+
   const ids = new Set((data || []).map(row => row.post_id));
   const oldPosts = cachedPosts;
   cachedPosts = oldPosts.filter(post => ids.has(post.id));
   renderPosts();
   cachedPosts = oldPosts;
+
   if (!ids.size) $("feed").innerHTML = '<div class="empty">No saved vents yet.</div>';
  }
 
  if (action === "settings") notify("More account settings are coming soon.");
 });
 
-/* SUPABASE INITIALISATION — DOES NOT BLOCK THE UI */
+/* SUPABASE INITIALISATION */
 async function startDatabase() {
  if (!window.supabase || typeof window.supabase.createClient !== "function") {
   $("feed").innerHTML = '<div class="empty">The database library did not load. Check your internet connection and refresh.</div>';
@@ -726,8 +896,10 @@ async function startDatabase() {
 
  try {
   db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
   const { data, error } = await db.auth.getSession();
   if (error) throw error;
+
   currentUser = data.session?.user || null;
   updateAccountMenu();
   await loadFeed();
