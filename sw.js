@@ -1,44 +1,5 @@
-const CACHE_NAME = "reag-shell-v2";
-const APP_SHELL = [
-  "./", "./index.html", "./profile.html", "./explore.html",
-  "./notifications.html", "./saved.html", "./settings.html",
-  "./styles.css", "./app.js", "./arcade.html"
-];
-
-self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
-});
-
-self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener("fetch", event => {
-  const request = event.request;
-  if (request.method !== "GET") return;
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
-
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).then(response => {
-        if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-        return response;
-      }).catch(async () => {
-        const cached = await caches.match(request);
-        return cached || caches.match("./index.html") || Response.error();
-      })
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-      return response;
-    }))
-  );
-});
+const CACHE_NAME="reag-mesh-v4";
+const APP_SHELL=["./","./index.html","./profile.html","./explore.html","./notifications.html","./saved.html","./settings.html","./styles.css","./styles-2030.css","./app.js","./arcade.html","./games.html","./games.css","./games.js","./neural-grid.html","./mesh.css","./mesh-core.js","./mesh-ui.js","./mesh-bridge.js","./mesh-bridge.css","./ai-about.html","./admin.html","./admin.js"];
+self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(APP_SHELL)).then(()=>self.skipWaiting()))});
+self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener("fetch",e=>{const r=e.request;if(r.method!=="GET")return;const u=new URL(r.url);if(u.origin!==self.location.origin)return;if(r.mode==="navigate"){e.respondWith(fetch(r).then(res=>{if(res.ok)caches.open(CACHE_NAME).then(c=>c.put(r,res.clone()));return res}).catch(async()=>await caches.match(r)||await caches.match("./index.html")||Response.error()));return}e.respondWith(caches.match(r).then(hit=>hit||fetch(r).then(res=>{if(res.ok)caches.open(CACHE_NAME).then(c=>c.put(r,res.clone()));return res})))});

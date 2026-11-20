@@ -1,0 +1,16 @@
+/* Re-Ag? 2030 visual refinement — progressive layer over existing styles.css */
+:root{--accent:#6c8f88;--accent2:#dcebe6;--shadow:0 16px 45px rgba(25,35,32,.07)}
+body{font-feature-settings:"ss01" on;letter-spacing:-.008em}
+.topbar{backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.brand{letter-spacing:-1.7px}.brand span{color:#55b8ad}
+.nav a,.side-nav a,.btn,.icon-btn,.action,.card,.panel{transition:background .2s,border-color .2s,transform .2s,box-shadow .2s}
+.nav a:hover,.side-nav a:hover{transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,#6e9d91,#66877f);box-shadow:0 7px 18px #648b802b}
+.card,.panel,.side-card{border-radius:19px}
+.card:hover{box-shadow:0 18px 42px rgba(25,35,32,.09)}
+.composer textarea{line-height:1.65}
+.post-content{line-height:1.75}
+.mobile-bottom{backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ng-bridge-link{font-weight:700!important}
+@media(prefers-reduced-motion:no-preference){.btn,.icon-btn,.action{transition:all .18s ease}.btn:active,.icon-btn:active{transform:scale(.97)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}

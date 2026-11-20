@@ -1,0 +1,40 @@
+{
+  "runtime_smoke_test_ok": true,
+  "stdout": "{\"boot\":\"ok\",\"volume\":\"ok\",\"learning\":\"ok\",\"codeAgent\":\"ok\",\"randomOpponentGames\":500,\"strategy\":\"no losses observed\",\"pool\":{\"segments\":0,\"liveBytes\":0,\"pooledBytes\":1024,\"reservedBytes\":1024,\"peakBytes\":1024,\"volumeBytes\":1024,\"owners\":{\"test-agent\":0}}}",
+  "stderr": "",
+  "syntax_checks": [
+    {
+      "file": "mesh-core.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "games.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "mesh-bridge.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "admin.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "mesh-ui.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "sw.js",
+      "ok": true,
+      "stderr": ""
+    }
+  ],
+  "all_syntax_ok": true,
+  "zip_integrity": "passed",
+  "archive_files": 24
+}
